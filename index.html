@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Exploding Unicorn</title>
+    <script src="json2.js"></script>
+    <script src="three.min.js"></script>
+    <script src="jquery-1.9.1.min.js"></script>
+    <script src="underscore-min.js"></script>
+    <script src="backbone-min.js"></script>
+
+    <script>
+      Game = Backbone.Model.extend({
+        loadContent: function() {
+          var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+          camera.position.z = 1000;
+
+          var scene = new THREE.Scene();
+
+          var renderer = new THREE.CanvasRenderer();
+
+          renderer.setSize( window.innerWidth, window.innerHeight );
+          this.set({
+            camera: camera,
+            scene: scene,
+            renderer: renderer
+          });
+
+          document.body.appendChild( renderer.domElement );
+          unicorn = new Unicorn(this);
+
+          this.set("last_frame_time", Date.now());
+        },
+        tick: function() {
+          var time = Date.now();
+          var deltaTime = time - this.get("last_frame_time");
+          this.trigger("tick",time, deltaTime);
+          this.trigger("draw");
+          this.set("last_frame_time", time);
+          this.get("renderer").render( this.get("scene"), this.get("camera") );
+        }
+      });
+
+      Unicorn = Backbone.Model.extend({
+        initialize: function(game) {
+          var geometry = new THREE.CubeGeometry( 200, 200, 50 );
+          var material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+
+          this.mesh = new THREE.Mesh( geometry, material );
+          this.mesh.position.x = 0;
+          this.mesh.position.y = 0;
+          game.get("scene").add( this.mesh );
+          this.listenTo(game, "tick", this.tick);
+
+          this.set({
+            orientation: 270,
+            velocity: 1
+          });
+        },
+        tick: function(time, deltaTime) {
+          var moveDistance = this.get("velocity") * deltaTime;
+          this.move(this.get("orientation"), moveDistance);
+        },
+        move: function(degrees, distance) {
+          var y = Math.sin(degrees) * distance;
+          var x = Math.cos(degrees) * distance;
+          this.mesh.position.x += x;
+          this.mesh.position.y += y;
+        },
+      });
+    </script>
+
+  </head>
+  <body>
+    <script>
+      document.game = new Game();
+      document.game.loadContent();
+      gameLoop = function(time) {
+        requestAnimationFrame(gameLoop);
+        document.game.tick(time)
+      }
+      gameLoop();
+    </script>
+  </body>
+</html>
